@@ -13,7 +13,7 @@ A lightweight C# MCP (Model Context Protocol) server that provides access to Zen
 ### 1. Build the Server
 
 ```bash
-cd tools/ZendeskMcpServer
+cd ZendeskMcpServer
 dotnet build --no-restore
 ```
 
