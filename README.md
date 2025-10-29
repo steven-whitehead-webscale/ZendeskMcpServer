@@ -38,7 +38,7 @@ You'll need:
       "args": [
         "run",
         "--project",
-        "C:\\projects\\keypay-dev\\tools\\ZendeskMcpServer\\ZendeskMcpServer.csproj"
+        "C:\\projects\\ZendeskMcpServer\\ZendeskMcpServer.csproj"
       ],
       "env": {
         "ZENDESK_SUBDOMAIN": "employmenthero1713155541",
