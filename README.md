@@ -13,7 +13,7 @@ A lightweight C# MCP (Model Context Protocol) server that provides access to Zen
 ### 1. Build the Server
 
 ```bash
-cd tools/ZendeskMcpServer
+cd ZendeskMcpServer
 dotnet build --no-restore
 ```
 
@@ -46,7 +46,7 @@ This mode runs the server as a process that Cursor launches directly. Each user 
       "args": [
         "run",
         "--project",
-        "C:\\projects\\keypay-dev\\tools\\ZendeskMcpServer\\ZendeskMcpServer.csproj"
+        "C:\\projects\\ZendeskMcpServer\\ZendeskMcpServer.csproj"
       ],
       "env": {
         "ZENDESK_SUBDOMAIN": "employmenthero1713155541",
