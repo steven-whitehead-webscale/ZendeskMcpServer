@@ -1,0 +1,12 @@
+{
+  "Zendesk": {
+    "Subdomain": "your-subdomain",
+    "Email": "your-email@example.com",
+    "ApiToken": "your-api-token"
+  },
+  "Server": {
+    "Port": "8080",
+    "Url": "http://0.0.0.0:8080"
+  }
+}
+

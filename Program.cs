@@ -1,5 +1,6 @@
 ﻿using System.Text.Json;
 using System.Text.Json.Serialization;
+using Microsoft.Extensions.Configuration;
 
 namespace ZendeskMcpServer;
 
@@ -7,7 +8,79 @@ class Program
 {
     static async Task Main(string[] args)
     {
-        var server = new McpServer();
+        // Check if we should run as HTTP server
+        var httpMode = args.Contains("--http") || 
+                       Environment.GetEnvironmentVariable("MCP_SERVER_MODE")?.ToLower() == "http";
+
+        if (httpMode)
+        {
+            await RunHttpServerAsync();
+        }
+        else
+        {
+            await RunStdioServerAsync();
+        }
+    }
+
+    static async Task RunHttpServerAsync()
+    {
+        var builder = WebApplication.CreateBuilder();
+        
+        // Add configuration from appsettings.json and environment variables
+        builder.Configuration
+            .SetBasePath(Directory.GetCurrentDirectory())
+            .AddJsonFile("appsettings.json", optional: true, reloadOnChange: true)
+            .AddEnvironmentVariables();
+        
+        var app = builder.Build();
+
+        var mcpServer = new McpServer(builder.Configuration);
+
+        // MCP protocol endpoint
+        app.MapPost("/", async (HttpContext context) =>
+        {
+            using var reader = new StreamReader(context.Request.Body);
+            var requestJson = await reader.ReadToEndAsync();
+            
+            if (string.IsNullOrWhiteSpace(requestJson))
+            {
+                context.Response.StatusCode = 400;
+                await context.Response.WriteAsync("Empty request body");
+                return;
+            }
+
+            var response = await mcpServer.ProcessRequestAsync(requestJson);
+            context.Response.ContentType = "application/json";
+            await context.Response.WriteAsync(response);
+        });
+
+        // Health check endpoint
+        app.MapGet("/health", () => Results.Ok(new { status = "healthy" }));
+
+        // Read port and URL from config or environment variables
+        var port = builder.Configuration["Server:Port"] 
+                ?? Environment.GetEnvironmentVariable("PORT") 
+                ?? "8080";
+        var url = builder.Configuration["Server:Url"] 
+               ?? Environment.GetEnvironmentVariable("MCP_SERVER_URL") 
+               ?? $"http://0.0.0.0:{port}";
+        
+        app.Urls.Add(url);
+        
+        Console.WriteLine($"Zendesk MCP Server running in HTTP mode on {url}");
+        await app.RunAsync();
+    }
+
+    static async Task RunStdioServerAsync()
+    {
+        // Build configuration from appsettings.json and environment variables
+        var configuration = new ConfigurationBuilder()
+            .SetBasePath(Directory.GetCurrentDirectory())
+            .AddJsonFile("appsettings.json", optional: true, reloadOnChange: true)
+            .AddEnvironmentVariables()
+            .Build();
+        
+        var server = new McpServer(configuration);
         await server.RunAsync();
     }
 }
@@ -38,11 +111,24 @@ public class McpServer
     private readonly ZendeskClient _zendeskClient;
     private readonly JsonSerializerOptions _jsonOptions;
 
-    public McpServer()
+    public McpServer(IConfiguration? configuration = null)
     {
-        var subdomain = Environment.GetEnvironmentVariable("ZENDESK_SUBDOMAIN") ?? "";
-        var email = Environment.GetEnvironmentVariable("ZENDESK_EMAIL") ?? "";
-        var apiToken = Environment.GetEnvironmentVariable("ZENDESK_API_TOKEN") ?? "";
+        // Read from configuration (appsettings.json) or environment variables
+        // Environment variables take precedence over config file
+        var subdomain = configuration?["Zendesk:Subdomain"] 
+                      ?? Environment.GetEnvironmentVariable("ZENDESK_SUBDOMAIN") 
+                      ?? configuration?["ZENDESK_SUBDOMAIN"] 
+                      ?? "";
+        
+        var email = configuration?["Zendesk:Email"] 
+                  ?? Environment.GetEnvironmentVariable("ZENDESK_EMAIL") 
+                  ?? configuration?["ZENDESK_EMAIL"] 
+                  ?? "";
+        
+        var apiToken = configuration?["Zendesk:ApiToken"] 
+                     ?? Environment.GetEnvironmentVariable("ZENDESK_API_TOKEN") 
+                     ?? configuration?["ZENDESK_API_TOKEN"] 
+                     ?? "";
 
         _zendeskClient = new ZendeskClient(subdomain, email, apiToken);
         
@@ -64,16 +150,20 @@ public class McpServer
             if (line == null) break;
             if (string.IsNullOrWhiteSpace(line)) continue;
 
-            await ProcessRequestAsync(line);
+            await ProcessRequestStdioAsync(line);
         }
     }
 
-    private async Task ProcessRequestAsync(string requestJson)
+    public async Task<string> ProcessRequestAsync(string requestJson)
     {
         try
         {
             var request = JsonSerializer.Deserialize<McpRequest>(requestJson, _jsonOptions);
-            if (request == null) return;
+            if (request == null) 
+            {
+                var nullResponse = new McpResponse("2.0", null, null, new McpError(-32600, "Invalid request"));
+                return JsonSerializer.Serialize(nullResponse, _jsonOptions);
+            }
 
             object? result = request.Method switch
             {
@@ -84,7 +174,7 @@ public class McpServer
             };
 
             var response = new McpResponse("2.0", request.Id, result, null);
-            WriteResponse(response);
+            return JsonSerializer.Serialize(response, _jsonOptions);
         }
         catch (Exception ex)
         {
@@ -94,8 +184,14 @@ public class McpServer
                 null,
                 new McpError(-32603, $"Internal error: {ex.Message}")
             );
-            WriteResponse(errorResponse);
+            return JsonSerializer.Serialize(errorResponse, _jsonOptions);
         }
+    }
+
+    private async Task ProcessRequestStdioAsync(string requestJson)
+    {
+        var responseJson = await ProcessRequestAsync(requestJson);
+        Console.WriteLine(responseJson);
     }
 
     private object HandleInitialize()
@@ -244,9 +340,4 @@ public class McpServer
         return JsonSerializer.Serialize(results, new JsonSerializerOptions { WriteIndented = true });
     }
 
-    private void WriteResponse(McpResponse response)
-    {
-        var json = JsonSerializer.Serialize(response, _jsonOptions);
-        Console.WriteLine(json);
-    }
 }
