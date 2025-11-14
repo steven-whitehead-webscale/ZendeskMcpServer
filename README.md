@@ -2,89 +2,6 @@
 
 A lightweight C# MCP (Model Context Protocol) server that provides access to Zendesk Help Center articles in Cursor AI.
 
-## Example in Cursor
-<img width="338" height="217" alt="image" src="https://github.com/user-attachments/assets/df8ef8ac-428d-4155-b4ab-6f22f8e7be0b" />
-<img width="349" height="295" alt="image" src="https://github.com/user-attachments/assets/28c03993-7de0-46f8-9238-625da7e3b25c" />
-
-
-# Troubleshooting pay run finalization
-_Exported on 11/14/2025 at 21:05:49 GMT+10:30 from Cursor (2.0.38)_
-
----
-
-**User**
-A pay run is not finalising what could be the problem?
-
----
-
-**Cursor**
-
-
-Searching Zendesk Help Center for articles on pay run finalization issues.
-
-
-
-Reading the search results:
-
-
-
-Searching for more specific articles about pay runs not finalizing:
-
-
-
-Searching for articles specifically about issues preventing pay run finalization:
-
-
-
-Based on the Zendesk search results, here are common reasons a pay run may not finalize and how to address them:
-
-## Common issues preventing pay run finalization
-
-### 1. **Pay run warnings**
-Check the **Warnings** tab in the pay run. Common warnings that can block finalization:
-- **Incomplete pay run tasks** — Complete all tasks before finalizing
-- **Pending leave requests** — Approve or reject pending leave requests
-- **Pending expense requests** — Approve or reject pending expense requests
-- **Employee with negative earnings amount** — Fix negative net payment amounts
-- **Employee with unpaid earnings** — Resolve zero-value earnings lines (often a pay rate issue)
-- **ABA/BPAY details missing** — Set up payment file details if required
-
-### 2. **STP lodgement warnings**
-- **JobKeeper/JobMaker identifier issues** — Ensure pay category names or allowance descriptions match ATO-prescribed formats
-- If these appear, unlock the pay run, fix the identifiers, then finalize again
-
-### 3. **Missing required information**
-- **Payment file setup** — Ensure ABA or BPAY details are configured if needed
-- **Employee bank details** — Verify bank account information for all employees
-
-### 4. **Data validation errors**
-- **Leave balance issues** — Employees taking more leave than accrued
-- **Duplicate earnings lines** — Remove duplicate entries
-- **Missing tax codes** — Ensure expenses have tax codes assigned (if using online journal service)
-
-## Steps to troubleshoot
-
-1. **Check the Warnings tab** — Review all warnings in the pay run
-2. **Review pay run data** — Use draft reports (Audit Report, Variance Report) to identify issues
-3. **Fix identified issues** — Address each warning/error
-4. **Recalculate the pay run** — After making changes, recalculate to update figures
-5. **Try finalizing again** — Once warnings are resolved, attempt finalization
-
-## Additional resources
-
-- **View pay run warnings**: Check the Warnings tab in your finalised pay run
-- **Unlock a pay run**: If you need to make changes after finalization (note: cannot unlock if automated super payments have been made)
-- **Pay run processing guide**: Follow the complete pay run workflow
-
-If you share the specific warning messages or errors you're seeing, I can provide more targeted guidance.
-
-
-
-
-
-
-
-
 ## Features
 
 - **Search Articles**: Search your Zendesk Help Center by keywords
@@ -259,6 +176,87 @@ List all articles.
 
 **Parameters**:
 - `limit` (number, optional): Max results (default: 30)
+
+
+
+## Real world example in Cursor
+<img width="338" height="217" alt="image" src="https://github.com/user-attachments/assets/df8ef8ac-428d-4155-b4ab-6f22f8e7be0b" />
+<img width="349" height="295" alt="image" src="https://github.com/user-attachments/assets/28c03993-7de0-46f8-9238-625da7e3b25c" />
+
+
+# Troubleshooting pay run finalization
+_Exported on 11/14/2025 at 21:05:49 GMT+10:30 from Cursor (2.0.38)_
+
+---
+
+**User**
+A pay run is not finalising what could be the problem?
+
+---
+
+**Cursor**
+
+
+Searching Zendesk Help Center for articles on pay run finalization issues.
+
+
+
+Reading the search results:
+
+
+
+Searching for more specific articles about pay runs not finalizing:
+
+
+
+Searching for articles specifically about issues preventing pay run finalization:
+
+
+
+Based on the Zendesk search results, here are common reasons a pay run may not finalize and how to address them:
+
+## Common issues preventing pay run finalization
+
+### 1. **Pay run warnings**
+Check the **Warnings** tab in the pay run. Common warnings that can block finalization:
+- **Incomplete pay run tasks** — Complete all tasks before finalizing
+- **Pending leave requests** — Approve or reject pending leave requests
+- **Pending expense requests** — Approve or reject pending expense requests
+- **Employee with negative earnings amount** — Fix negative net payment amounts
+- **Employee with unpaid earnings** — Resolve zero-value earnings lines (often a pay rate issue)
+- **ABA/BPAY details missing** — Set up payment file details if required
+
+### 2. **STP lodgement warnings**
+- **JobKeeper/JobMaker identifier issues** — Ensure pay category names or allowance descriptions match ATO-prescribed formats
+- If these appear, unlock the pay run, fix the identifiers, then finalize again
+
+### 3. **Missing required information**
+- **Payment file setup** — Ensure ABA or BPAY details are configured if needed
+- **Employee bank details** — Verify bank account information for all employees
+
+### 4. **Data validation errors**
+- **Leave balance issues** — Employees taking more leave than accrued
+- **Duplicate earnings lines** — Remove duplicate entries
+- **Missing tax codes** — Ensure expenses have tax codes assigned (if using online journal service)
+
+## Steps to troubleshoot
+
+1. **Check the Warnings tab** — Review all warnings in the pay run
+2. **Review pay run data** — Use draft reports (Audit Report, Variance Report) to identify issues
+3. **Fix identified issues** — Address each warning/error
+4. **Recalculate the pay run** — After making changes, recalculate to update figures
+5. **Try finalizing again** — Once warnings are resolved, attempt finalization
+
+## Additional resources
+
+- **View pay run warnings**: Check the Warnings tab in your finalised pay run
+- **Unlock a pay run**: If you need to make changes after finalization (note: cannot unlock if automated super payments have been made)
+- **Pay run processing guide**: Follow the complete pay run workflow
+
+If you share the specific warning messages or errors you're seeing, I can provide more targeted guidance.
+
+
+
 
 ## Troubleshooting
 
