@@ -1,6 +1,8 @@
 ﻿using System.Text.Json;
 using System.Text.Json.Serialization;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Caching.Memory;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace ZendeskMcpServer;
 
@@ -32,9 +34,14 @@ class Program
             .AddJsonFile("appsettings.json", optional: true, reloadOnChange: true)
             .AddEnvironmentVariables();
         
+        // Add memory cache for Zendesk API response caching
+        builder.Services.AddMemoryCache();
+        
         var app = builder.Build();
-
-        var mcpServer = new McpServer(builder.Configuration);
+        
+        // Get IMemoryCache from service provider
+        var cache = app.Services.GetRequiredService<IMemoryCache>();
+        var mcpServer = new McpServer(builder.Configuration, cache);
 
         // MCP protocol endpoint
         app.MapPost("/", async (HttpContext context) =>
@@ -80,7 +87,10 @@ class Program
             .AddEnvironmentVariables()
             .Build();
         
-        var server = new McpServer(configuration);
+        // Create memory cache for stdio mode
+        var cache = new MemoryCache(new MemoryCacheOptions());
+        
+        var server = new McpServer(configuration, cache);
         await server.RunAsync();
     }
 }
@@ -111,7 +121,7 @@ public class McpServer
     private readonly ZendeskClient _zendeskClient;
     private readonly JsonSerializerOptions _jsonOptions;
 
-    public McpServer(IConfiguration? configuration = null)
+    public McpServer(IConfiguration? configuration = null, IMemoryCache? cache = null)
     {
         // Read from configuration (appsettings.json) or environment variables
         // Environment variables take precedence over config file
@@ -130,7 +140,7 @@ public class McpServer
                      ?? configuration?["ZENDESK_API_TOKEN"] 
                      ?? "";
 
-        _zendeskClient = new ZendeskClient(subdomain, email, apiToken);
+        _zendeskClient = new ZendeskClient(subdomain, email, apiToken, cache);
         
         _jsonOptions = new JsonSerializerOptions
         {

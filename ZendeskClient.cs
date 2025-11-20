@@ -1,6 +1,7 @@
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using Microsoft.Extensions.Caching.Memory;
 
 namespace ZendeskMcpServer;
 
@@ -8,11 +9,18 @@ public class ZendeskClient
 {
     private readonly HttpClient _httpClient;
     private readonly string _baseUrl;
+    private readonly IMemoryCache _cache;
+    
+    // Cache TTLs
+    private static readonly TimeSpan SearchCacheExpiry = TimeSpan.FromMinutes(5);
+    private static readonly TimeSpan ArticleCacheExpiry = TimeSpan.FromMinutes(15);
+    private static readonly TimeSpan ListCacheExpiry = TimeSpan.FromMinutes(2);
 
-    public ZendeskClient(string subdomain, string email, string apiToken)
+    public ZendeskClient(string subdomain, string email, string apiToken, IMemoryCache? cache = null)
     {
         _baseUrl = $"https://{subdomain}.zendesk.com";
         _httpClient = new HttpClient();
+        _cache = cache ?? new MemoryCache(new MemoryCacheOptions());
         
         // Basic auth: email/token:api_token
         var authString = Convert.ToBase64String(
@@ -24,6 +32,16 @@ public class ZendeskClient
 
     public async Task<List<ArticleResult>> SearchArticlesAsync(string query, int limit = 10)
     {
+        // Create cache key from query and limit
+        var cacheKey = $"search:{query.ToLowerInvariant()}:{limit}";
+        
+        // Try to get from cache first
+        if (_cache.TryGetValue(cacheKey, out List<ArticleResult>? cachedResults) && cachedResults != null)
+        {
+            return cachedResults;
+        }
+
+        // If not in cache, make API call
         var url = $"{_baseUrl}/api/v2/help_center/articles/search.json?query={Uri.EscapeDataString(query)}&per_page={limit}";
         var response = await _httpClient.GetAsync(url);
         response.EnsureSuccessStatusCode();
@@ -34,11 +52,26 @@ public class ZendeskClient
             PropertyNameCaseInsensitive = true 
         });
 
-        return searchResponse?.Results ?? new List<ArticleResult>();
+        var results = searchResponse?.Results ?? new List<ArticleResult>();
+        
+        // Cache the results
+        _cache.Set(cacheKey, results, SearchCacheExpiry);
+        
+        return results;
     }
 
     public async Task<Article> GetArticleAsync(string articleId)
     {
+        // Create cache key from article ID
+        var cacheKey = $"article:{articleId}";
+        
+        // Try to get from cache first
+        if (_cache.TryGetValue(cacheKey, out Article? cachedArticle) && cachedArticle != null)
+        {
+            return cachedArticle;
+        }
+
+        // If not in cache, make API call
         var url = $"{_baseUrl}/api/v2/help_center/articles/{articleId}.json";
         var response = await _httpClient.GetAsync(url);
         response.EnsureSuccessStatusCode();
@@ -49,11 +82,26 @@ public class ZendeskClient
             PropertyNameCaseInsensitive = true 
         });
 
-        return articleResponse?.Article ?? throw new Exception("Article not found");
+        var article = articleResponse?.Article ?? throw new Exception("Article not found");
+        
+        // Cache the article
+        _cache.Set(cacheKey, article, ArticleCacheExpiry);
+        
+        return article;
     }
 
     public async Task<List<Article>> ListArticlesAsync(int limit = 30)
     {
+        // Create cache key from limit
+        var cacheKey = $"list:{limit}";
+        
+        // Try to get from cache first
+        if (_cache.TryGetValue(cacheKey, out List<Article>? cachedArticles) && cachedArticles != null)
+        {
+            return cachedArticles;
+        }
+
+        // If not in cache, make API call
         var url = $"{_baseUrl}/api/v2/help_center/articles.json?per_page={limit}";
         var response = await _httpClient.GetAsync(url);
         response.EnsureSuccessStatusCode();
@@ -64,7 +112,12 @@ public class ZendeskClient
             PropertyNameCaseInsensitive = true 
         });
 
-        return listResponse?.Articles ?? new List<Article>();
+        var articles = listResponse?.Articles ?? new List<Article>();
+        
+        // Cache the results (shorter TTL since lists change more frequently)
+        _cache.Set(cacheKey, articles, ListCacheExpiry);
+        
+        return articles;
     }
 }
 
