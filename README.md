@@ -362,3 +362,6 @@ ENTRYPOINT ["dotnet", "ZendeskMcpServer.dll", "--http"]
 - **Stdio mode**: The token is stored in Cursor's settings file locally on your machine.
 - **HTTP mode**: The token is stored as an environment variable on the server. Use secure secret management practices (environment variables, secret managers, etc.) when deploying.
 
+## Zendesk Rate Limits
+
+Zendesk enforces rate limits on API requests. For HTTP server mode with multiple clients, all requests share the same account limits (typically ~700 requests/minute for most accounts, though this varies by plan and endpoint). Monitor for HTTP 429 responses and implement request queuing if you experience rate limiting. See [Zendesk's official rate limits documentation](https://developer.zendesk.com/api-reference/introduction/rate-limits/) for details specific to your account.
